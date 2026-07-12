@@ -1,0 +1,21 @@
+project:
+  name: Credit Card Fraud Detection
+  version: 0.1
+
+dataset:
+  source: kaggle
+  owner: mlg-ulb
+  name: creditcardfraud
+  filename: creditcard.csv
+
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  external_data: data/external
+
+model:
+  random_state: 42
+  test_size: 0.2
+
+download:
+  force_download: false
