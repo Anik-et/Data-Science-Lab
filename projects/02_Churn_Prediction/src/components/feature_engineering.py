@@ -20,7 +20,7 @@ class FeatureEngineer:
         ).columns.tolist()
 
         categorical_features = X.select_dtypes(
-            include=["object"]
+            include=["object", "string"]
         ).columns.tolist()
 
         numerical_pipeline = Pipeline(

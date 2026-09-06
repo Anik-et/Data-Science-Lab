@@ -44,6 +44,7 @@ class ModelEvaluator:
 
         return results
 
+
     def evaluate_all(
         self,
         models,
@@ -51,8 +52,9 @@ class ModelEvaluator:
         y_test
     ):
 
-        for model_name, model in models.items():
+        self.results = []
 
+        for model_name, model in models.items():
             self.evaluate_model(
                 model_name,
                 model,

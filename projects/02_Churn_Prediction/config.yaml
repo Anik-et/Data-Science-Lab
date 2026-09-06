@@ -73,3 +73,8 @@ artifacts:
 
 shap:
   output_path: "artifacts/shap_summary.png"
+
+prediction:
+  high_risk_threshold: 0.70
+  medium_risk_threshold: 0.40
+

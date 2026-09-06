@@ -1,4 +1,5 @@
 from src.components.model_evaluator import ModelEvaluator
+from src.components.model_tuner import ModelTuner
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -127,40 +128,110 @@ def main():
     )
 
 
-    # --------------------------------------------------
-    # 8. Model Training
-    # --------------------------------------------------
+    # ---------------------------------------------------------
+    # 8. Baseline Model Training
+    # ---------------------------------------------------------
 
     trainer = ModelTrainer(config)
 
-    trained_models = trainer.train_all(
+    baseline_models = trainer.train_all(
         X_train_transformed,
         y_train
     )
 
-    print("\nModels trained:")
-
-    for model_name in trained_models:
+    print("\nBaseline models trained:")
+    for model_name in baseline_models:
         print(f"- {model_name}")
 
 
-    # --------------------------------------------------
-    # 9. Model Evaluation
-    # --------------------------------------------------
+    # ---------------------------------------------------------
+    # Baseline Model Evaluation
+    # ---------------------------------------------------------
 
     evaluator = ModelEvaluator()
 
-    results = evaluator.evaluate_all(
-    trained_models,
-    X_test_transformed,
-    y_test
+    baseline_results = evaluator.evaluate_all(
+        baseline_models,
+        X_test_transformed,
+        y_test
     )
 
-    print("\nModel Evaluation:")
-    print(results.to_string(index=False))
+    print("\nBaseline Model Evaluation:")
+    print(
+        baseline_results.to_string(index=False)
+    )
 
-    best_model_row = results.loc[
-    results["ROC-AUC"].idxmax()
+
+    # ---------------------------------------------------------
+    # Hyperparameter Tuning
+    # ---------------------------------------------------------
+
+    print("\nStarting hyperparameter tuning...")
+
+    tuner = ModelTuner()
+
+    tuned_rf = tuner.tune_random_forest(
+        X_train_transformed,
+        y_train
+    )
+
+    tuned_xgb = tuner.tune_xgboost(
+        X_train_transformed,
+        y_train
+    )
+
+    tuned_models = {
+        "random_forest_tuned": tuned_rf,
+        "xgboost_tuned": tuned_xgb
+    }
+
+    print("\nBest Hyperparameters:")
+
+    for model_name, params in tuner.get_best_parameters().items():
+        print(f"\n{model_name}:")
+        print(params)
+
+
+    # ---------------------------------------------------------
+    # Tuned Model Evaluation
+    # ---------------------------------------------------------
+
+    tuned_results = evaluator.evaluate_all(
+        tuned_models,
+        X_test_transformed,
+        y_test
+    )
+
+    print("\nTuned Model Evaluation:")
+    print(
+        tuned_results.to_string(index=False)
+    )
+
+
+    # ---------------------------------------------------------
+    # Combine Results
+    # ---------------------------------------------------------
+
+    all_results = pd.concat(
+        [
+            baseline_results,
+            tuned_results
+        ],
+        ignore_index=True
+    )
+
+    print("\nAll Model Results:")
+    print(
+        all_results.to_string(index=False)
+    )
+
+
+    # ---------------------------------------------------------
+    # Select Best Model
+    # ---------------------------------------------------------
+
+    best_model_row = all_results.loc[
+        all_results["ROC-AUC"].idxmax()
     ]
 
     best_model_name = best_model_row["Model"]
@@ -169,6 +240,41 @@ def main():
         f"\nBest model based on ROC-AUC: "
         f"{best_model_name}"
     )
+
+
+    if best_model_name == "logistic_regression":
+        best_model = baseline_models["logistic_regression"]
+
+    elif best_model_name == "random_forest":
+        best_model = baseline_models["random_forest"]
+
+    elif best_model_name == "xgboost":
+        best_model = baseline_models["xgboost"]
+
+    elif best_model_name == "random_forest_tuned":
+        best_model = tuned_models["random_forest_tuned"]
+
+    elif best_model_name == "xgboost_tuned":
+        best_model = tuned_models["xgboost_tuned"]
+
+    else:
+        raise ValueError(
+            f"Unknown model: {best_model_name}"
+        )
+
+        print("\nModel Evaluation:")
+        print(results.to_string(index=False))
+
+        best_model_row = results.loc[
+        results["ROC-AUC"].idxmax()
+        ]
+
+        best_model_name = best_model_row["Model"]
+
+        print(
+            f"\nBest model based on ROC-AUC: "
+            f"{best_model_name}"
+        )
 
     # --------------------------------------------------
     # 10. Save artifacts
@@ -187,10 +293,10 @@ def main():
     )
 
     # Save best model
-    trainer.save_model(
-        best_model_name,
-        config["artifacts"]["best_model"]
-    )
+    joblib.dump(
+    best_model,
+    config["artifacts"]["best_model"]
+)
 
     # Save fitted preprocessor
     joblib.dump(
@@ -213,11 +319,13 @@ def main():
 
     from src.components.shap_analyzer import SHAPAnalyzer
 
-    if best_model_name in ["random_forest", "xgboost"]:
-
+    if best_model_name in [
+    "random_forest",
+    "xgboost",
+    "random_forest_tuned",
+    "xgboost_tuned"
+    ]:
         shap_analyzer = SHAPAnalyzer()
-
-        best_model = trained_models[best_model_name]
 
         shap_analyzer.calculate_shap_values(
             best_model,

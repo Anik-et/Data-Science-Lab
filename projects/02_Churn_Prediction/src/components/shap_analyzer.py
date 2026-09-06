@@ -46,5 +46,5 @@ class SHAPAnalyzer:
                 bbox_inches="tight"
             )
 
-        plt.show()
+       # plt.show() -- for showing when running the script directly, but not in a pipeline context
         plt.close()
