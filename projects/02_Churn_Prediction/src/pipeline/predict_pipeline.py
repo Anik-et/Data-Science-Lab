@@ -1,5 +1,6 @@
 import joblib
 import pandas as pd
+from pathlib import Path
 
 from src.components.data_transformation import DataTransformation
 from src.utils.config import read_yaml
@@ -7,11 +8,21 @@ from src.utils.config import read_yaml
 
 class PredictPipeline:
 
-    def __init__(self, config_path="config.yaml"):
+    def __init__(self, config_path=None):
+
+        # Project root:
+        # src/pipeline/predict_pipeline.py
+        #       ↑
+        # parents[2] = 02_Churn_Prediction
+        project_root = Path(__file__).resolve().parents[2]
+
+        if config_path is None:
+            config_path = project_root / "config.yaml"
+
         self.config = read_yaml(config_path)
 
-        self.model_path = self.config["artifacts"]["best_model"]
-        self.preprocessor_path = self.config["artifacts"]["preprocessor"]
+        self.model_path = project_root / self.config["artifacts"]["best_model"]
+        self.preprocessor_path = project_root / self.config["artifacts"]["preprocessor"]
 
         self.model = joblib.load(self.model_path)
         self.preprocessor = joblib.load(self.preprocessor_path)
